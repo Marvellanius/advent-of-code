@@ -1,6 +1,6 @@
 import {AOCFileReader} from "../fileReader";
-import {EMPTY, from, of, Subscription} from "rxjs";
-import {filter, map, mergeMap, skipUntil, skipWhile, take, takeUntil, takeWhile, tap} from "rxjs/operators";
+import {from, Subscription} from "rxjs";
+import {map, mergeMap, skipWhile} from "rxjs/operators";
 
 
 /*
