@@ -6,12 +6,17 @@ const readline = require("readline");
 class AOCFileReader {
     constructor() {
         this.lines$ = new rxjs_1.Subject();
+        this.line$ = new rxjs_1.Subject();
     }
     readFile(path) {
         const lines = new Array();
         const rl = readline.createInterface({ input: fs.createReadStream(path), crlfDelay: Infinity });
         rl.on('line', (line) => lines.push(line));
         rl.on('close', () => this.lines$.next(lines));
+    }
+    readLines(path) {
+        const rl = readline.createInterface({ input: fs.createReadStream(path), crlfDelay: Infinity });
+        rl.on('line', (line) => this.line$.next(line));
     }
 }
 exports.AOCFileReader = AOCFileReader;

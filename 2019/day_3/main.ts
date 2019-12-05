@@ -1,6 +1,6 @@
 import {AOCFileReader} from "../fileReader";
 import {EMPTY, from, Observable, of, Subscription} from "rxjs";
-import {map, mergeMap, pairwise, pluck, share, tap} from "rxjs/operators";
+import {map, mergeMap, pairwise, pluck, tap, last, scan, every} from "rxjs/operators";
 
 export class AOC2019DayThree {
     constructor() {};
@@ -8,118 +8,121 @@ export class AOC2019DayThree {
     private path = '/opt/project/2019/day_3/input.txt';
     private input = null;
     subscriptions: Subscription[] = [];
+    directions = {
+        R: [1,0],
+        L: [-1,0],
+        U: [0,1],
+        D: [0,-1]
+    };
 
     test() {
-        this.testAssignment1();
+        this.testAssignment();
+        // this.testAssignment1();
         // this.testAssignment2();
     }
 
     run() {
-        this.reader.readFile(this.path);
+        this.reader.readLines(this.path);
         this.subscriptions.push(
             this.assignment1(),
             // this.assignment2()
         );
     }
 
-    intersects(l1, l2) {
-        let det, gamma, lambda;
-        det = (l1[2] - l1[0]) * (l2[3] - l2[1]) - (l2[2] - l2[0]) * (l1[3] - l1[1]);
-        if (det === 0) {
-            return false;
-        } else {
-            lambda = ((l2[3] - l2[1]) * (l2[2] - l1[0]) + (l2[0] - l2[2]) * (l2[3] - l1[1])) / det;
-            gamma = ((l1[1] - l1[3]) * (l2[1] - l1[0]) + (l1[2] - l1[0]) * (l2[3] - l1[1])) / det;
-            return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
-        }
-    }
-
-    testAssignment1() {
-        this.reader.readFile('/opt/project/2019/day_3/input.test1.txt');
-        const expectedResult = 159;
-        this.parsedWires$().subscribe(data => {
-                const cw1 = data.wireOne.points;
-                const cw2 = data.wireTwo.points;
-
-                const lw1 = [];
-                const lw2 = [];
-
-                // make function
-                for (let i = 1; i < cw1.length; i++) {
-                    const line = [cw1[i-1].x,cw1[i-1].y,cw1[i].x,cw1[i].y];
-                    lw1.push(line);
-                }
-                for (let i = 1; i < cw2.length; i++) {
-                    const line = [cw2[i-1].x,cw2[i-1].y,cw2[i].x,cw2[i].y];
-                    lw2.push(line);
-                }
-                const interLines = [];
-                for (let i = 0; i < lw1.length; i++) {
-                    for (let j = 0; j < lw2.length; j++) {
-                        if (this.intersects(lw1[i], lw2[j])) {
-                            interLines.push([lw1[i],lw2[j]]);
-                        }
-                    }
-                }
-                console.log(interLines);
-                const manhattanDistances = [];
-
-                //make function
-                interLines.forEach(element => {
-                    let intersectX;
-                    let intersectY;
-                    if(Math.abs(element[0][0] - element[0][2]) < Math.abs(element[1][0] - element[1][2])) {
-                        intersectX = element[0][0];
-                    } else {
-                        intersectX = element[1][0];
-                    }
-                    if(Math.abs(element[0][1] - element[0][3]) < Math.abs(element[1][1] - element[1][3])) {
-                        intersectY = element[0][1];
-                    } else {
-                        intersectY = element[1][1];
-                    }
-                    let p1 = [intersectX, intersectY];
-                    console.log(p1);
-                    let p2 = [0,0];
-                    manhattanDistances.push(this.calculateManhattanDistanceForPoints(p1, p2));
-                });
-                const actualResult = Math.min(...manhattanDistances);
-                console.log('Test 1: Answer = ' + actualResult + ' Expected Answer = ' + expectedResult);
+    testAssignment() {
+        this.parsedWires$().pipe(
+            tap(data => console.log(data)),
+        ).subscribe(data => {
+                // const cw1 = data;
+                // const cw2 = data;
+                // const interLines = this.getIntersectingLines(lw1, lw2);
+                // const actualResult = this.getLowestManhattanDistance(interLines);
+                // console.log('Test Answer = ' + actualResult);
             }
         );
+        this.reader.readLines('/opt/project/2019/day_3/input.test1.txt');
+        this.reader.readLines('/opt/project/2019/day_3/input.test2.txt');
+        this.reader.readLines('/opt/project/2019/day_3/input.test3.txt');
     }
 
-    getCoordinatesForWire(wire): Point2D[] {
-        console.log('Input for getCoordinatesForWire: ', wire);
-        const parsedWire = this.parseWire(wire);
-        const startCoord: Point2D = {x: 0, y: 0};
-        const coordsForWire = [];
-        coordsForWire.push(startCoord);
-        parsedWire.forEach((element, index) => {
-            const direction = element.direction;
-            const amount = element.amount;
-            let coord: Point2D;
-            const prevCoord = coordsForWire[index];
-            switch (direction) {
-                case 'R':
-                    coord = {x:(prevCoord.x + amount), y:prevCoord.y};
-                    coordsForWire.push(coord);
-                    break;
-                case 'L':
-                    coord = {x:(prevCoord.x - amount), y:prevCoord.y};
-                    coordsForWire.push(coord);
-                    break;
-                case 'U':
-                    coord = {x:prevCoord.x, y:(prevCoord.y + amount)};
-                    coordsForWire.push(coord);
-                    break;
-                case 'D':
-                    coord = {x:prevCoord.x, y:(prevCoord.y - amount)};
-                    coordsForWire.push(coord);
-                    break;
-                default:
-                    break;
+    assignment1(){
+        return this.parsedWires$().pipe(
+            tap(data => console.log(data))
+        )
+            .subscribe(data => {
+                // const cw1 = data.wireOne.points;
+                // const cw2 = data.wireTwo.points;
+                // const lw1 = this.parseCoordsToLines(cw1);
+                // const lw2 = this.parseCoordsToLines(cw2);
+                // const interLines = this.getIntersectingLines(lw1, lw2);
+                // const actualResult = this.getLowestManhattanDistance(interLines);
+                // console.log('Answer = ' + actualResult);
+
+                // console.log(data);
+            });
+    }
+    assignment2(){}
+
+    getIntersectingLines(l1, l2) {
+        l2.forEach(point => {
+            this.intersects(l1, point);
+        });
+        console.log(l1, l2);
+        const interLines = [];
+        for (let i = 0; i < l1.length; i++) {
+            for (let j = 0; j < l2.length; j++) {
+                if (this.intersects(l1[i], l2[j])) {
+                    interLines.push([l1[i],l2[j]]);
+                }
             }
+        }
+        console.log(interLines);
+        return interLines;
+    }
+
+    getLowestManhattanDistance(input) {
+        const manhattanDistances = [];
+
+        input.forEach(element => {
+            const p2 = this.getIntersectCoords(element);
+            manhattanDistances.push(this.calculateManhattanDistanceForPoints([0,0], p2));
+        });
+        console.log(manhattanDistances);
+
+        return Math.min(...manhattanDistances);
+    }
+
+    getIntersectCoords(input) {
+        let intersectX;
+        let intersectY;
+        if(Math.abs(input[0][0] - input[0][2]) < Math.abs(input[1][0] - input[1][2])) {
+            intersectX = input[0][0];
+        } else {
+            intersectX = input[1][0];
+        }
+        if(Math.abs(input[0][1] - input[0][3]) < Math.abs(input[1][1] - input[1][3])) {
+            intersectY = input[0][1];
+        } else {
+            intersectY = input[1][1];
+        }
+        return [intersectX, intersectY];
+    }
+
+    intersects(l1, l2) {
+        return l2.filter(coord => l1.includes(coord));
+    }
+
+    addArrays(arr1, instruction) {
+        return arr1.map((num, index) => num + (this.directions[instruction.direction][index] * instruction.amount));
+    }
+
+    getCoordinatesForWire(wire): Array<number> {
+        const parsedWire = this.parseWire(wire);
+        const coordsForWire = [];
+        parsedWire.forEach((instruction, index) => {
+            let prevCoord = coordsForWire.length > 0 ? coordsForWire[index-1] : [0,0];
+            prevCoord = this.addArrays(prevCoord, instruction);
+            coordsForWire.push(prevCoord);
         });
         return coordsForWire;
     }
@@ -135,15 +138,13 @@ export class AOC2019DayThree {
     }
 
     parsedWires$() {
-        return this.reader.lines$.pipe(
+        return this.reader.line$.pipe(
+            // tap(data => console.log(data)),
             map(data => {
-                console.log(data);
-                let wireOne: Wire;
-                wireOne = {points: this.getCoordinatesForWire(data[0])};
-                let wireTwo: Wire;
-                wireTwo= {points: this.getCoordinatesForWire(data[1])};
-                return {wireOne, wireTwo};
+                return this.getCoordinatesForWire(data);
             }),
+            // tap(data => console.log(data)),
+            pairwise()
         )
     }
 
@@ -158,19 +159,18 @@ export class AOC2019DayThree {
         });
         return wireObject;
     }
-
-    assignment1(){
-        return this.parsedWires$().pipe()
-        .subscribe(data => {
-            console.log(data.wireOne);
-            console.log(data.wireTwo);
-        });
-    }
-    assignment2(){}
-
 }
 const self = new AOC2019DayThree();
+// self.run();
 self.test();
+// console.log(self.intersects([3,5,3,2],[6,3,2,3]));
+// console.log(self.intersects([3,5,3,2],[0,7,6,7]));
+// console.log(self.intersects([8,5,3,5],[6,7,6,3]));
+
+// Guesses:
+// 690 -- WRONG
+//
+
 
 interface Wire {
     input?: string;
